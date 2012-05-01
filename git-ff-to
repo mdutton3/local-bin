@@ -1,0 +1,44 @@
+#!/bin/bash
+
+if [ $# -eq 0 ] || [ "$1" == "--help" ] || [ "$1" == "-?" ]; then
+    cat <<USAGE_HERE_DOCUMENT
+usage: git ff-to [merge-options] <commitish>
+Fast forwards the current branch one commit towards the specified commit.
+
+    Given the following history:
+        A--B--C--D--E
+           \--X--/
+    If HEAD is at commit A, then:
+    $ git ff-to E   # HEAD == B
+    $ git ff-to E   # HEAD == C
+    $ git ff-to E   # HEAD == D
+    $ git ff-to E   # HEAD == E
+USAGE_HERE_DOCUMENT
+    exit
+fi
+
+MERGE_ARG_LEN=$(($#-1))
+MERGE_ARGS=${@:1:$MERGE_ARG_LEN}
+TARGET=${@:$#}
+
+CURREV=$(git rev-parse --revs-only --short HEAD) || exit
+echo "# Currently at: $(git log -n 1 --oneline --decorate HEAD)"
+
+TARGETREV=$(git rev-parse --revs-only --short "$TARGET") || exit
+echo "# FF towards:   $(git log -n 1 --oneline --decorate $TARGET)"
+
+if [ "$CURREV" == "$TARGETREV" ]; then
+    echo "Already at target commit!" 1>&2
+    exit
+fi
+
+NEXTCOMMIT=$(git next-commit "$TARGET")
+if [ $? -ne 0 ] || [ -z $NEXTCOMMIT ]; then
+    echo "Could not determine next commit!" 1>&2
+    exit
+fi
+echo "# Next commit:  $(git log -n 1 --oneline --decorate $NEXTCOMMIT)"
+
+if [ -z $MERGEARGS ]; then git merge --ff-only $NEXTCOMMIT
+else git merge --ff-only $MERGE_ARGS $NEXTCOMMIT
+fi

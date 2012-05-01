@@ -1,0 +1,20 @@
+#!/bin/bash
+
+if [ $# -ne 1 ] || [ "$1" == "--help" ] || [ "$1" == "-?" ]; then
+    cat <<USAGE_HERE_DOCUMENT
+usage: $0 <commitish>
+Prints the next commit towards the specified commit, staying on the mainline.
+
+    Given the following history:
+        A--B--C--D--E
+           \--X--/
+    If HEAD is at commit B, then:
+    $ git ff-to E
+    C
+USAGE_HERE_DOCUMENT
+    exit
+fi
+
+TARGET=$1
+
+git log --format=%H --reverse --first-parent HEAD.. "$TARGET" | head -n 1
