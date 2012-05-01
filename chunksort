@@ -1,0 +1,73 @@
+#! /bin/sh
+#
+###	chunksort - sort multi-line records (separated by single blank lines)
+###	Usage: chunksort [-a] [sort options] [files]
+##
+## chunksort - SORT CHUNKS OF TEXT SEPARATED BY BLANK LINES, LIKE THIS:
+##
+## Using C on the UNIX System
+## By Dave Curry
+## 250 pages, ISBN 0-937175-23-4
+## 
+## Checking C Programs with lint
+## By Ian F. Darwin
+## 84 pages, ISBN 0-937175-30-7
+##
+##	THE -a OPTION MAKES sort SORT BY LINES (SETS FIELD SEPARATOR, THE
+##	sort -t OPTION, TO BE CTRL-A).  FOR EXAMPLE,
+##	** TO SORT STARTING AT THE SECOND LINE, USE:   -a +1
+##	** TO SORT STARTING AT THE FIFTH CHARACTER OF THIRD LINE:  -a +2.4
+##
+# WORKS BY FIRST JOINING EACH CHUNK WITH A CTRL-A, LIKE THIS:
+#
+# Using C on the UNIX System^ABy Dave Curry^A250 pages, ISBN 0-937175-23-4
+# Checking C Programs with lint^ABy Ian F. Darwin^A84 pages, ISBN 0-937175-30-7
+#
+# THEN SORTING AND SPLITTING AGAIN.
+#
+# Thanks to Greg Ubben for help on this.
+
+files=   sortopts=
+
+# PARSE COMMAND LINE:
+while :
+do
+	case "$1" in
+	"")	# OUT OF ARGUMENTS (WE HOPE...)
+		break
+		;;
+	-a)	# USE CTRL-A AS SORT FIELD SEPARATOR (SO CAN PICK WHICH LINE OF
+		# THE RECORD TO SORT ON -- FOR EXAMPLE, +1 TO SORT ON LINE 2):
+		ctrla=`echo a | tr a '\001'`
+		sortopts="$sortopts -t$ctrla"
+		;;
+	-o)	# WE CAN'T PASS -o TO sort BECAUSE USER WOULD GET WRONG OUTPUT:
+		echo "`basename $0` quitting: I don't have a -o option." 1>&2
+		exit 1
+		;;
+	-[Tyz])
+		# THE sort T, y, AND z OPTIONS HAVE AN ARGUMENT AFTER THEM.
+		sortopts="$sortopts $1 $2"
+		shift	# GET RID OF ONE (WE'LL DO OTHER BELOW)
+		;;
+	[-+]*)
+		# SOME OTHER OPTION OR SORT FIELD:
+		sortopts="$sortopts $1"
+		;;
+	*)	# IT'S A FILENAME (WE HOPE...)
+		files="$files $1"
+		;;
+	esac
+	shift
+done
+
+# Change newlines into CTRL-a's, print long line with extra CTRL-a at end:
+gawk '{
+    gsub(/\r\n/,"\1");
+    gsub(/\r/,"\1");
+	gsub(/\n/,"\1");
+	print $0 "\1" }
+' RS= $files |
+# sort that text with $sortopts from above, change CTRL-a's to newlines:
+sort $sortopts |
+tr '\1' '\12'

@@ -1,0 +1,5 @@
+#! /bin/sh
+#
+# Used with sort and line-unpack to sort multiple lines
+# Change newlines into CTRL-a's, print long line with extra CTRL-a at end:
+gawk '{ gsub(/\r\n/,"\1"); gsub(/\r/,"\1"); gsub(/\n/,"\1"); print $0 "\1" }' RS= $*
